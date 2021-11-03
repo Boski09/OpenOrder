@@ -1,6 +1,52 @@
 data "aws_region" "aws-region" {}
 data "aws_caller_identity" "current" {}
 
+resource "aws_iam_role" "api_auth" {
+  name = "api-auth-invocation"
+  path = "/"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "apigateway.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+resource "aws_iam_role_policy" "api_auth" {
+  name   = "api-auth-invocation"
+  role   = aws_iam_role.api_auth.id
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "lambda:InvokeFunction",
+      "Effect": "Allow",
+      "Resource": "${var.authorizer_lambda_invoke_arn}"
+    }
+  ]
+}
+EOF
+}
+resource "aws_api_gateway_authorizer" "api_auth" {
+  name                             = "api-authorizer"
+  type                             = "TOKEN"
+  rest_api_id                      = aws_api_gateway_rest_api.api.id
+  authorizer_uri                   = var.authorizer_lambda_invoke_arn
+  authorizer_credentials           = aws_iam_role.api_auth.arn
+  authorizer_result_ttl_in_seconds = 0
+}
+
+
 resource "aws_api_gateway_rest_api" "api" {
   name =  var.api_name
   tags = var.tags
@@ -99,14 +145,14 @@ resource "aws_api_gateway_integration_response" "api_mthd_02" {
 }
 
 
-#/api/v1/getorderlist
+#/api/v1/getorder
 resource "aws_api_gateway_resource" "api_rsc_04" {
   parent_id   = aws_api_gateway_resource.api_rsc_02.id
-  path_part   = "getorderlist"
+  path_part   = "getorder"
   rest_api_id = aws_api_gateway_rest_api.api.id
 }
 
-#/api/v1/getorderlist/OPTIONS
+#/api/v1/getorder/OPTIONS
 resource "aws_api_gateway_method" "api_mthd_03" {
   authorization = "NONE"
   http_method   = "OPTIONS"
@@ -145,7 +191,7 @@ resource "aws_api_gateway_integration_response" "api_mthd_03" {
   } 
 }
 
-#/api/v1/getorderlist/GET
+#/api/v1/getorder/GET
 resource "aws_api_gateway_method" "api_mthd_04" {
   authorization = "NONE"
   http_method   = "GET"
@@ -198,15 +244,15 @@ EOF
 }
 
 
-#/api/v1/orderlist
+#/api/v1/updateorder
 resource "aws_api_gateway_resource" "api_rsc_05" {
   parent_id   = aws_api_gateway_resource.api_rsc_02.id
-  path_part   = "orderlist"
+  path_part   = "updateorder"
   rest_api_id = aws_api_gateway_rest_api.api.id
 }
 
 
-#/api/v1/getorderlist/GET
+#/api/v1/updateorder/GET
 resource "aws_api_gateway_method" "api_mthd_05" {
   authorization = "NONE"
   http_method   = "GET"
@@ -239,7 +285,7 @@ resource "aws_api_gateway_integration_response" "api_mthd_05" {
 }
 
 
-#/api/v1/orderlist/OPTIONS
+#/api/v1/updateorder/OPTIONS
 resource "aws_api_gateway_method" "api_mthd_06" {
   authorization = "NONE"
   http_method   = "OPTIONS"

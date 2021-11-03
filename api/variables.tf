@@ -2,6 +2,10 @@ variable "api_name"{
     type = string
     description = "API name"
 }
+variable "authorizer_lambda_invoke_arn"{
+    type = string
+    description = "Authorizer lambda invoke arn"
+}
 variable "lambda_invoke_arn"{
     type = string
     description = "Lambda invoke arn for api"
